@@ -34,5 +34,13 @@ event dns_query_reply(c: connection, msg: dns_msg, query: string, qtype: count, 
 }
 
 event zeek_init() {
+@if (Cluster::is_enabled())    
+    if (Cluster::local_node_type() == Cluster::MANAGER) {
         store = Broker::create_master("dns_monitoring", Broker::SQLITE);
+    } else {
+        store = Broker::create_master("dns_monitoring");
+    }
+@else
+        store = Broker::create_master("dns_monitoring", Broker::SQLITE);
+@endif
 }
