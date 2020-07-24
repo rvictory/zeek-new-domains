@@ -1,0 +1,8 @@
+[package]
+description = Monitors for new domains being queried for and raises a notice for them
+credits = Ryan Victory
+tags = DNS
+version = 1.0
+script_dir = scripts
+depends =
+    sethhall/domain-tld
