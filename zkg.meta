@@ -4,5 +4,4 @@ credits = Ryan Victory
 tags = DNS
 version = 1.0
 script_dir = scripts
-depends =
-    sethhall/domain-tld
+depends = domain-tld
