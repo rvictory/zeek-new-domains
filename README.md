@@ -1,7 +1,7 @@
 # Zeek New Domain Monitoring
 This package monitors DNS queries and seeks to alert on new second level domains observed. It does this by using the `DomainTLD` module to extract "effective" second level domain names. This means that for domains such as `www.google.co.uk` we will consider `google.co.uk` to be the second level domain, not `co.uk`. 
 
-The package keeps state in an SQLite database and considers a domain "new" if it hasn't been observed in the past 24 hours. When a new domain is observed, the effective second level domain name and the original query (the FQDN) are added to a notice in `notice.log`. The SQLite database enables us to keep the state across Zeek restarts.
+The package keeps state in an SQLite database (or optionally in memory) and considers a domain "new" if it hasn't been observed in the past 24 hours (this can be configured, see the Configuration section below). When a new domain is observed, the effective second level domain name and the original query (the FQDN) are added to a notice in `notice.log`. The SQLite database enables us to keep the state across Zeek restarts.
 
 ## Example Alert:
 ```
@@ -13,7 +13,19 @@ The package keeps state in an SQLite database and considers a domain "new" if it
 ## Installing
 This package is intended to be installed using `zkg`. To install it, execute `zkg install https://github.com/rvictory/zeek-new-domains`. If you need to install it in a standalone fashion, the Domain TLD package (https://github.com/sethhall/domain-tld) must be installed and loaded (via local.zeek or similar) BEFORE this package is loaded.
 
-## Caveats
-This package is not cluster ready (although I will likely update it in the future to make it cluster ready). This means that if you have more than one worker it won't work as intended (each worker will build its own database based on traffic it has seen and you'll get duplicate alerts).
+## Configuration
+This package exposes two configuration options:
+* `DNSMonitor::history_expiration_interval`: This is an interval that controls how long a name will be considered "not new." The default is 24 hours. The timer is reset for a name every time it is queried, so as long as a name is queried once every `history_expiration_interval` time interval, it won't be alerted on. Larger values will create a larger database (on disk or in memory) but will lower the number of notices you get.
+*  `DNSMonitor::enable_persistence`: This boolean option turns on or off the persistence of the history datastore. The default is `T` which saves history in an SQLite database on disk. Turn it off if you are willing to lose history on Zeek restarts but gain the performance of not using SQLite.
 
-Because it uses an SQLite database, it's not suitable for extremely high volume monitoring. Future versions will include the ability to run in memory only to help mitigate this shortcoming.
+To change a configuration option, put something like the following in your `site/local.zeek` file:
+
+```zeek
+redef DNSMonitor::history_expiration_interval = 12hrs;
+redef DNSMonitor::enable_persistence = F;
+```
+
+## Caveats
+This package is ~~not cluster ready (although I will likely update it in the future to make it cluster ready)~~ cluster aware through the use of a persistent Clusterized Broker data store! This means that if you have more than one worker it ~~won't~~ will work as intended.
+
+Because it uses an SQLite database, it's not suitable for extremely high volume monitoring. If you want to use it in an enviroment with higher traffic volumes, set the `DNSMonitor::enable_persistence` configuration option to `F` in order to store the data in memory only. If Zeek restarts, your history will be lost. This is useful, however, if you know that you have long-running Zeek processes and are willing to accept the loss of history.

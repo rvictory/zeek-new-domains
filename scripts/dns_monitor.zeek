@@ -7,13 +7,15 @@
 module DNSMonitor;
 
 export {
-        redef enum Notice::Type += {
-                DNS_New_Domain
+    redef enum Notice::Type += {
+        DNS_New_Domain
     };
+
+    option history_expiration_interval = 24hrs;
+    option enable_persistence = T;
 }
 
 global store: Cluster::StoreInfo;
-global known_names: table[string] of bool &read_expire=24hrs;
 
 event dns_query_reply(c: connection, msg: dns_msg, query: string, qtype: count, qclass: count) {
         local effective_domain = DomainTLD::effective_domain(query);
@@ -25,11 +27,11 @@ event dns_query_reply(c: connection, msg: dns_msg, query: string, qtype: count, 
                                 $suppress_for=1msec,
                                 $msg="New domain observed: " + effective_domain + " from query " + query]);
                 }
-                when (local put_result = Broker::put(store$store, effective_domain, T, 24hrs)) {
+                when (local put_result = Broker::put(store$store, effective_domain, T, DNSMonitor::history_expiration_interval)) {
                 } timeout 5sec { Cluster::log("Timeout when writing domain to store"); }
         } timeout 5sec { Cluster::log("Timeout when trying to see if a domain exists"); }
 }
 
 event zeek_init() {
-    store = Cluster::create_store("dns_monitoring", T);
+    store = Cluster::create_store("dns_monitoring", DNSMonitor::enable_persistence);
 }
