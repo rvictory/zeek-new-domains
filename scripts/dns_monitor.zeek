@@ -26,17 +26,10 @@ event dns_query_reply(c: connection, msg: dns_msg, query: string, qtype: count, 
                                 $msg="New domain observed: " + effective_domain + " from query " + query]);
                 }
                 when (local put_result = Broker::put(store, effective_domain, T, 24hrs)) {
-                } timeout 5sec {
-                }
-        } timeout 5sec {
-                # Do something?
-        }
+                } timeout 5sec {}
+        } timeout 5sec {}
 }
 
 event zeek_init() {
-    if (!Cluster::is_enabled() || Cluster::local_node_type() == Cluster::MANAGER) {
-        store = Broker::create_master("dns_monitoring", Broker::SQLITE);
-    } else {
-        store = Broker::create_clone("dns_monitoring");
-    }
+    store = Cluster::create_store("dns_monitoring", T)$store;
 }
