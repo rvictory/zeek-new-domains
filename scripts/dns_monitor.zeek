@@ -12,12 +12,12 @@ export {
     };
 }
 
-global store: opaque of Broker::Store;
+global store: Cluster::StoreInfo;
 global known_names: table[string] of bool &read_expire=24hrs;
 
 event dns_query_reply(c: connection, msg: dns_msg, query: string, qtype: count, qclass: count) {
         local effective_domain = DomainTLD::effective_domain(query);
-        when (local exists = Broker::exists(store, effective_domain)) {
+        when (local exists = Broker::exists(store$store, effective_domain)) {
                 local bool_exists = (exists$result as bool);
                 if (!bool_exists) {
                         NOTICE([$note=DNS_New_Domain,
@@ -25,11 +25,11 @@ event dns_query_reply(c: connection, msg: dns_msg, query: string, qtype: count, 
                                 $suppress_for=1msec,
                                 $msg="New domain observed: " + effective_domain + " from query " + query]);
                 }
-                when (local put_result = Broker::put(store, effective_domain, T, 24hrs)) {
+                when (local put_result = Broker::put(store$store, effective_domain, T, 24hrs)) {
                 } timeout 5sec { Cluster::log("Timeout when writing domain to store"); }
         } timeout 5sec { Cluster::log("Timeout when trying to see if a domain exists"); }
 }
 
 event zeek_init() {
-    store = Cluster::create_store("dns_monitoring", T)$store;
+    store = Cluster::create_store("dns_monitoring", T);
 }
