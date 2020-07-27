@@ -26,8 +26,8 @@ event dns_query_reply(c: connection, msg: dns_msg, query: string, qtype: count, 
                                 $msg="New domain observed: " + effective_domain + " from query " + query]);
                 }
                 when (local put_result = Broker::put(store, effective_domain, T, 24hrs)) {
-                } timeout 5sec {}
-        } timeout 5sec {}
+                } timeout 5sec { Cluster::log("Timeout when writing domain to store"); }
+        } timeout 5sec { Cluster::log("Timeout when trying to see if a domain exists"); }
 }
 
 event zeek_init() {
