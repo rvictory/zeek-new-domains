@@ -29,3 +29,5 @@ redef DNSMonitor::enable_persistence = F;
 This package is ~~not cluster ready (although I will likely update it in the future to make it cluster ready)~~ cluster aware through the use of a persistent Clusterized Broker data store! This means that if you have more than one worker it ~~won't~~ will work as intended.
 
 Because it uses an SQLite database, it's not suitable for extremely high volume monitoring. If you want to use it in an enviroment with higher traffic volumes, set the `DNSMonitor::enable_persistence` configuration option to `F` in order to store the data in memory only. If Zeek restarts, your history will be lost. This is useful, however, if you know that you have long-running Zeek processes and are willing to accept the loss of history.
+
+Zeek's Broker Data Stores (which are used for persistence) are asynchronous. Because of this, there are scenarios where you may end up with duplicate log entries when queries for the same (new) name are executed very quickly. This isn't a bug, it's just a side effect of asynchronous execution.
